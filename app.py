@@ -386,31 +386,35 @@ st.markdown("AI-powered prayer extraction for accurate results")
 with st.sidebar:
     st.header("⚙️ Settings")
     
-    # API Key input - check env first, then Streamlit secrets, then allow manual input
-    env_key = os.getenv('OPENAI_API_KEY')
+    # API Key input - check Streamlit secrets first (for deployment), then env vars, then allow manual input
+    api_key = None
     
-    # Try to get from Streamlit secrets (for cloud deployment) only if env not set
-    if not env_key:
-        try:
-            secrets_key = st.secrets.get("OPENAI_API_KEY")
-            # Don't use the placeholder value
-            if secrets_key and not secrets_key.startswith("your-"):
-                env_key = secrets_key
-        except:
-            pass
+    # Try Streamlit secrets first (preferred for deployment)
+    try:
+        secrets_key = st.secrets.get("OPENAI_API_KEY")
+        if secrets_key and not secrets_key.startswith("your-"):
+            api_key = secrets_key
+            st.success("✅ API Key loaded from secrets")
+    except:
+        pass
     
-    if env_key:
-        api_key = env_key
-        st.success("✅ API Key loaded")
-    else:
+    # Fall back to environment variable if no secrets
+    if not api_key:
+        env_key = os.getenv('OPENAI_API_KEY')
+        if env_key:
+            api_key = env_key
+            st.success("✅ API Key loaded from environment")
+    
+    # Finally, allow manual input if neither secrets nor env var exist
+    if not api_key:
         api_key = st.text_input(
             "OpenAI API Key",
             type="password",
-            help="Enter your OpenAI API key"
+            help="Enter your OpenAI API key or configure it in Streamlit Cloud secrets"
         )
         
         if api_key:
-            st.success("✅ API Key configured")
+            st.success("✅ API Key configured manually")
         else:
             st.warning("⚠️ API Key required for AI extraction")
     
