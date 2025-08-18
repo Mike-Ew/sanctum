@@ -35,7 +35,7 @@ def extract_video_id(url):
     return None
 
 def fetch_transcript(video_id):
-    """Fetch transcript from YouTube video"""
+    """Fetch transcript from YouTube video with timestamps"""
     try:
         api = YouTubeTranscriptApi()
         transcript_list = api.list(video_id)
@@ -49,53 +49,97 @@ def fetch_transcript(video_id):
                     transcript = list(available.values())[0]
         
         transcript_data = transcript.fetch()
+        
+        # Return both formatted text and raw data with timestamps
         formatter = TextFormatter()
         formatted_transcript = formatter.format_transcript(transcript_data)
-        return formatted_transcript
+        return formatted_transcript, transcript_data
     except Exception as e:
         return None, str(e)
 
-def extract_prayers_with_ai(transcript, api_key, model="gpt-4-turbo-preview"):
+def extract_prayers_with_ai(transcript_text, api_key, model="gpt-4-turbo-preview", transcript_data=None):
     """
-    Use OpenAI to extract prayers and scriptures accurately
+    Use OpenAI to extract prayers and scriptures accurately using timestamps
     """
     try:
         import openai
         openai.api_key = api_key
         
-        # Pre-filter: Extract only prayer-related sentences (like architect's approach)
-        prayer_keywords = r'\b(pray|prayer|father|lord|in jesus name|let us pray|we ask|we declare|amen)\b'
-        sentences = re.split(r'(?<=[.!?])\s+', transcript)
-        
-        # Keep sentences with prayer keywords
-        prayer_sentences = []
-        for sent in sentences:
-            if re.search(prayer_keywords, sent, re.IGNORECASE):
-                prayer_sentences.append(sent)
-        
-        # If we have prayer sentences, use them; otherwise use original
-        filtered_text = ' '.join(prayer_sentences) if prayer_sentences else transcript
-        
-        # Find the prayer section (skip opening prayers)
-        prayer_section_markers = ['prayer point', 'prayer item', 'prayer number', 'let us lift']
-        prayer_section_start = -1
-        
-        for marker in prayer_section_markers:
-            if marker in filtered_text.lower():
-                prayer_section_start = filtered_text.lower().index(marker)
-                break
-        
-        # Take from prayer section if found, otherwise from middle of service
-        if prayer_section_start > 0:
-            # Take from prayer section onwards
-            relevant_text = filtered_text[max(0, prayer_section_start-200):]
+        # If we have timestamp data, use it to identify prayer clusters
+        if transcript_data and isinstance(transcript_data, list) and len(transcript_data) > 0:
+            # Look for prayer point markers with timestamps
+            prayer_markers = ['prayer point', 'prayer item', 'prayer number', 'let us lift', 'let us pray']
+            prayer_segments = []
+            
+            for i, segment in enumerate(transcript_data):
+                # Handle different transcript data formats
+                if isinstance(segment, dict) and 'text' in segment:
+                    text_lower = segment['text'].lower()
+                else:
+                    # Skip if format is unexpected
+                    continue
+                    
+                # Check if this segment contains prayer markers
+                if any(marker in text_lower for marker in prayer_markers):
+                    # Found a prayer section marker - collect next 5 minutes of content
+                    start_time = segment['start']
+                    end_time = start_time + 300  # 5 minutes window
+                    
+                    # Collect all segments in this time window
+                    prayer_section = []
+                    for j in range(i, min(i+100, len(transcript_data))):
+                        if isinstance(transcript_data[j], dict) and 'start' in transcript_data[j] and 'text' in transcript_data[j]:
+                            if transcript_data[j]['start'] <= end_time:
+                                prayer_section.append(transcript_data[j]['text'])
+                            else:
+                                break
+                    
+                    if prayer_section:
+                        prayer_segments.append(' '.join(prayer_section))
+            
+            # Also look for clusters of "Father" prayers in time
+            father_clusters = []
+            for i, segment in enumerate(transcript_data):
+                if isinstance(segment, dict) and 'text' in segment and 'start' in segment:
+                    if segment['text'].strip().startswith('Father') or 'father' in segment['text'].lower()[:20]:
+                        # Found a Father prayer - check if there are more nearby
+                        cluster_start = segment['start']
+                        cluster_texts = []
+                        
+                        # Look for prayers within 2 minutes
+                        for j in range(max(0, i-10), min(i+30, len(transcript_data))):
+                            if isinstance(transcript_data[j], dict) and 'start' in transcript_data[j] and 'text' in transcript_data[j]:
+                                if abs(transcript_data[j]['start'] - cluster_start) <= 120:
+                                    cluster_texts.append(transcript_data[j]['text'])
+                        
+                        if len(cluster_texts) >= 4:  # Found a cluster
+                            father_clusters.append(' '.join(cluster_texts))
+            
+            # Combine both approaches
+            relevant_text = ' '.join(prayer_segments + father_clusters)
+            
+            # If no clusters found, fall back to keyword search
+            if not relevant_text:
+                prayer_keywords = r'\b(pray|prayer|father|lord|in jesus name|let us pray|we ask|we declare|amen)\b'
+                prayer_sentences = []
+                for segment in transcript_data:
+                    if re.search(prayer_keywords, segment['text'], re.IGNORECASE):
+                        prayer_sentences.append(segment['text'])
+                relevant_text = ' '.join(prayer_sentences)
         else:
-            # Skip first 30% (opening/worship)
-            skip_amount = len(filtered_text) // 3
-            relevant_text = filtered_text[skip_amount:]
+            # Fallback to text-only processing
+            prayer_keywords = r'\b(pray|prayer|father|lord|in jesus name|let us pray|we ask|we declare|amen)\b'
+            sentences = re.split(r'(?<=[.!?])\s+', transcript_text)
+            
+            prayer_sentences = []
+            for sent in sentences:
+                if re.search(prayer_keywords, sent, re.IGNORECASE):
+                    prayer_sentences.append(sent)
+            
+            relevant_text = ' '.join(prayer_sentences) if prayer_sentences else transcript_text
         
         # Limit to reasonable size
-        max_chars = 10000
+        max_chars = 12000
         if len(relevant_text) > max_chars:
             relevant_text = relevant_text[:max_chars]
         
@@ -418,11 +462,10 @@ if st.button("🎬 Generate Prayer Slides", type="primary"):
             with st.spinner("Fetching transcript..."):
                 result = fetch_transcript(video_id)
                 
-                if isinstance(result, tuple):
-                    transcript, error = result
-                    st.error(f"Error fetching transcript: {error}")
+                if result[0] is None:
+                    st.error(f"Error fetching transcript: {result[1]}")
                 else:
-                    transcript = result
+                    transcript, transcript_data = result
                     
                     # Add transcript download option
                     with st.expander("📄 View/Download Transcript"):
@@ -438,7 +481,7 @@ if st.button("🎬 Generate Prayer Slides", type="primary"):
                     
                     with st.spinner(f"🤖 Extracting prayers with {model_choice}..."):
                         if extraction_method == "AI (Recommended)" and api_key:
-                            prayers = extract_prayers_with_ai(transcript, api_key, model_choice)
+                            prayers = extract_prayers_with_ai(transcript, api_key, model_choice, transcript_data)
                         else:
                             st.warning("Falling back to regex extraction...")
                             # Fallback to basic extraction
