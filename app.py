@@ -197,15 +197,27 @@ Filtered transcript (prayer-related sentences only):
 {relevant_text}"""
             
         # Use selected model for extraction
-        response = openai.ChatCompletion.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.1,
-            max_tokens=2000
-        )
+        # GPT-5 models use max_completion_tokens instead of max_tokens
+        if model.startswith('gpt-5'):
+            response = openai.ChatCompletion.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.1,
+                max_completion_tokens=2000
+            )
+        else:
+            response = openai.ChatCompletion.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.1,
+                max_tokens=2000
+            )
         
         try:
             response_text = response.choices[0].message.content
