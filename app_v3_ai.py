@@ -37,8 +37,9 @@ def extract_video_id(url):
 def fetch_transcript(video_id):
     """Fetch transcript from YouTube video with timestamps"""
     try:
-        # Use the static method instead of creating an instance
-        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+        # Create an instance of the API
+        api = YouTubeTranscriptApi()
+        transcript_list = api.list(video_id)
         try:
             # Try to get manually created transcript first
             transcript = transcript_list.find_transcript(['en'])
