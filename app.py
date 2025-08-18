@@ -37,16 +37,18 @@ def extract_video_id(url):
 def fetch_transcript(video_id):
     """Fetch transcript from YouTube video with timestamps"""
     try:
-        api = YouTubeTranscriptApi()
-        transcript_list = api.list(video_id)
+        # Use the static method instead of creating an instance
+        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
         try:
+            # Try to get manually created transcript first
             transcript = transcript_list.find_transcript(['en'])
         except:
-            transcript = transcript_list.find_generated_transcript(['en'])
-            if not transcript:
-                available = transcript_list._get_fetched_transcripts()
-                if available:
-                    transcript = list(available.values())[0]
+            # Fall back to auto-generated transcript
+            try:
+                transcript = transcript_list.find_generated_transcript(['en'])
+            except:
+                # Get any available transcript
+                transcript = transcript_list.find_transcript(['en-US'])
         
         transcript_data = transcript.fetch()
         
@@ -373,10 +375,13 @@ with st.sidebar:
     # API Key input - check env first, then Streamlit secrets, then allow manual input
     env_key = os.getenv('OPENAI_API_KEY')
     
-    # Try to get from Streamlit secrets (for cloud deployment)
+    # Try to get from Streamlit secrets (for cloud deployment) only if env not set
     if not env_key:
         try:
-            env_key = st.secrets.get("OPENAI_API_KEY")
+            secrets_key = st.secrets.get("OPENAI_API_KEY")
+            # Don't use the placeholder value
+            if secrets_key and not secrets_key.startswith("your-"):
+                env_key = secrets_key
         except:
             pass
     
