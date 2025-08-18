@@ -198,6 +198,7 @@ Filtered transcript (prayer-related sentences only):
             
         # Use selected model for extraction
         # GPT-5 models use max_completion_tokens instead of max_tokens
+        # GPT-5 models also don't support custom temperature (only default of 1)
         if model.startswith('gpt-5'):
             response = openai.ChatCompletion.create(
                 model=model,
@@ -205,7 +206,7 @@ Filtered transcript (prayer-related sentences only):
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=0.1,
+                # temperature=1 is the default for GPT-5, no need to specify
                 max_completion_tokens=2000
             )
         else:
@@ -630,15 +631,29 @@ Look for prayers about:
                     # Take first 10000 chars for testing
                     test_chunk = transcript[:10000]
                     
-                    response = openai.ChatCompletion.create(
-                        model="gpt-3.5-turbo",
-                        messages=[
-                            {"role": "system", "content": "You are analyzing a church sermon transcript."},
-                            {"role": "user", "content": custom_prompt + "\n\nTranscript:\n" + test_chunk}
-                        ],
-                        temperature=0.1,
-                        max_tokens=2000
-                    )
+                    # Use the selected model for testing
+                    test_model = model_choice if api_key else "gpt-3.5-turbo"
+                    
+                    # Handle GPT-5 models differently
+                    if test_model.startswith('gpt-5'):
+                        response = openai.ChatCompletion.create(
+                            model=test_model,
+                            messages=[
+                                {"role": "system", "content": "You are analyzing a church sermon transcript."},
+                                {"role": "user", "content": custom_prompt + "\n\nTranscript:\n" + test_chunk}
+                            ],
+                            max_completion_tokens=2000
+                        )
+                    else:
+                        response = openai.ChatCompletion.create(
+                            model=test_model,
+                            messages=[
+                                {"role": "system", "content": "You are analyzing a church sermon transcript."},
+                                {"role": "user", "content": custom_prompt + "\n\nTranscript:\n" + test_chunk}
+                            ],
+                            temperature=0.1,
+                            max_tokens=2000
+                        )
                     
                     result = response.choices[0].message.content
                     st.markdown("### AI Response:")

@@ -198,6 +198,7 @@ Filtered transcript (prayer-related sentences only):
             
         # Use selected model for extraction
         # GPT-5 models use max_completion_tokens instead of max_tokens
+        # GPT-5 models also don't support custom temperature (only default of 1)
         if model.startswith('gpt-5'):
             response = openai.ChatCompletion.create(
                 model=model,
@@ -205,7 +206,7 @@ Filtered transcript (prayer-related sentences only):
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=0.1,
+                # temperature=1 is the default for GPT-5, no need to specify
                 max_completion_tokens=2000
             )
         else:
