@@ -396,9 +396,9 @@ with st.sidebar:
     # Model selection
     model_choice = st.selectbox(
         "AI Model",
-        ["gpt-4", "gpt-4-turbo-preview", "gpt-3.5-turbo-16k", "gpt-4o", "gpt-4o-mini"],
-        index=0,  # Default to gpt-4
-        help="GPT-4 models are more accurate but cost more"
+        ["gpt-5", "gpt-5-mini", "gpt-5-nano", "gpt-4", "gpt-4-turbo-preview", "gpt-4o", "gpt-4o-mini", "gpt-3.5-turbo-16k"],
+        index=0,  # Default to gpt-5
+        help="GPT-5 is the latest and most capable model (released Aug 2025)"
     )
     
     include_numbers = st.checkbox("Include Prayer Numbers", value=True)

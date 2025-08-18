@@ -406,9 +406,9 @@ with st.sidebar:
     # Model selection
     model_choice = st.selectbox(
         "AI Model",
-        ["gpt-4", "gpt-4-turbo-preview", "gpt-3.5-turbo-16k", "gpt-4o", "gpt-4o-mini"],
-        index=0,  # Default to gpt-4
-        help="GPT-4 models are more accurate but cost more"
+        ["gpt-5", "gpt-5-mini", "gpt-5-nano", "gpt-4", "gpt-4-turbo-preview", "gpt-4o", "gpt-4o-mini", "gpt-3.5-turbo-16k"],
+        index=0,  # Default to gpt-5
+        help="GPT-5 is the latest and most capable model (released Aug 2025)"
     )
     
     include_numbers = st.checkbox("Include Prayer Numbers", value=True)
@@ -425,11 +425,14 @@ with st.sidebar:
     st.markdown("### 💰 Cost Estimate")
     
     cost_map = {
-        "gpt-3.5-turbo-16k": "~$0.002 per sermon",
+        "gpt-5": "~$0.015 per sermon",  # $1.25/$10 per 1M tokens
+        "gpt-5-mini": "~$0.008 per sermon",  # Cheaper than gpt-5
+        "gpt-5-nano": "~$0.004 per sermon",  # Cheapest GPT-5 variant
         "gpt-4": "~$0.02 per sermon",
         "gpt-4-turbo-preview": "~$0.01 per sermon",
         "gpt-4o": "~$0.005 per sermon",
-        "gpt-4o-mini": "~$0.001 per sermon"
+        "gpt-4o-mini": "~$0.001 per sermon",
+        "gpt-3.5-turbo-16k": "~$0.002 per sermon"
     }
     
     st.markdown(f"**Selected Model ({model_choice}):**")
