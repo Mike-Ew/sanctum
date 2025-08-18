@@ -43,3 +43,7 @@ Thumbs.db
 transcripts/
 output/
 *.log
+
+# Environment variables
+.env
+.env.local
