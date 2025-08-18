@@ -18,8 +18,9 @@ st.set_page_config(
 def extract_video_id(url):
     """Extract YouTube video ID from URL"""
     patterns = [
-        r'(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?]+)',
-        r'youtube\.com\/watch\?.*v=([^&\n?]+)'
+        r'(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/live\/)([^&\n?]+)',
+        r'youtube\.com\/watch\?.*v=([^&\n?]+)',
+        r'youtube\.com\/live\/([^&\n?]+)'
     ]
     
     for pattern in patterns:
@@ -31,10 +32,26 @@ def extract_video_id(url):
 def fetch_transcript(video_id):
     """Fetch transcript from YouTube video"""
     try:
-        transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
+        api = YouTubeTranscriptApi()
+        transcript_list = api.list(video_id)
+        # Try to find English transcript first, then any available
+        try:
+            transcript = transcript_list.find_transcript(['en'])
+        except:
+            # Get first available transcript in any language
+            transcript = transcript_list.find_generated_transcript(['en'])
+            if not transcript:
+                available = transcript_list._get_fetched_transcripts()
+                if available:
+                    transcript = list(available.values())[0]
+        
+        # Fetch the actual transcript data
+        transcript_data = transcript.fetch()
+        
+        # Format the transcript
         formatter = TextFormatter()
-        transcript = formatter.format_transcript(transcript_list)
-        return transcript
+        formatted_transcript = formatter.format_transcript(transcript_data)
+        return formatted_transcript
     except Exception as e:
         return None, str(e)
 
