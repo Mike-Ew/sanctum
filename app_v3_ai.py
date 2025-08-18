@@ -101,17 +101,23 @@ def extract_prayers_with_ai(transcript, api_key, model="gpt-4-turbo-preview"):
         
         # Single API call with the filtered text
         system_prompt = """You are a church service assistant extracting congregational prayer points with their scripture references.
-From the transcript, extract EXACTLY FOUR main prayer points.
-EXCLUDE opening salutations, welcome prayers, and casual prayers.
-Focus on the numbered prayer points that congregation would repeat.
-Each prayer MUST start with 'Father' and be 1-2 sentences.
-Each prayer MUST have a scripture reference - look for book chapter:verse patterns near the prayer.
-Common scripture patterns: Psalm 115:1, John 3:16, 1 Corinthians 2:9, Isaiah 60:1, etc.
-Return exactly 4 prayer points with their scriptures."""
+From the transcript, extract EXACTLY FOUR main prayer points that are displayed on screen during the service.
+These are the formal prayer points the congregation reads together, NOT conversational prayers.
+Look for prayers about: thanksgiving for multitudes/healing, new converts consistency, God's presence terminating sickness, gathering multitudes.
+Each prayer MUST start with 'Father' and be complete sentences.
+Each prayer MUST have a scripture reference - these are usually shown right after the prayer.
+Common scripture patterns: Psalm 115:1, Psalm 84:7, Psalm 114:7-8, Job 33:23-24, etc.
+Return exactly 4 prayer points with their scriptures in the order they appear."""
 
         user_prompt = f"""Extract the 4 main congregational prayer points from this filtered transcript.
-Skip any opening/welcome prayers. Look for prayers introduced as 'prayer point' or numbered prayers.
-IMPORTANT: Each prayer MUST have a scripture reference. Look for scripture mentions before, during, or after each prayer.
+These are the formal prayers displayed on screen, not casual prayers.
+Look for these specific prayer themes in order:
+1. Thanksgiving for multitudes and healing miracles from last Sunday
+2. New converts/members being consumed with zeal for consistency
+3. God's presence dominating services and terminating health challenges
+4. Gathering unprecedented multitudes this coming Sunday
+
+IMPORTANT: Each prayer MUST have a scripture reference. Look for scripture mentions right after each prayer.
 
 Scripture patterns to look for:
 - Book chapter:verse (e.g., "Psalm 115:1", "John 3:16")
@@ -343,7 +349,8 @@ with st.sidebar:
     # Model selection
     model_choice = st.selectbox(
         "AI Model",
-        ["gpt-4-turbo-preview", "gpt-4", "gpt-3.5-turbo-16k", "gpt-4o", "gpt-4o-mini"],
+        ["gpt-4", "gpt-4-turbo-preview", "gpt-3.5-turbo-16k", "gpt-4o", "gpt-4o-mini"],
+        index=0,  # Default to gpt-4
         help="GPT-4 models are more accurate but cost more"
     )
     
