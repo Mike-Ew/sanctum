@@ -65,8 +65,8 @@ def extract_prayers_with_ai(transcript_text, api_key, model="gpt-4-turbo-preview
     Use OpenAI to extract prayers and scriptures accurately using timestamps
     """
     try:
-        from openai import OpenAI
-        client = OpenAI(api_key=api_key)
+        import openai
+        openai.api_key = api_key
         
         # If we have timestamp data, use it to identify prayer clusters
         if transcript_data and isinstance(transcript_data, list) and len(transcript_data) > 0:
@@ -197,16 +197,28 @@ Filtered transcript (prayer-related sentences only):
 {relevant_text}"""
             
         # Use selected model for extraction
-        # Note: gpt-4o models are the latest and most capable
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.1,
-            max_tokens=2000
-        )
+        # GPT-5 models use max_completion_tokens instead of max_tokens
+        # GPT-5 models also don't support custom temperature (only default of 1)
+        if model.startswith('gpt-5'):
+            response = openai.ChatCompletion.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                # temperature=1 is the default for GPT-5, no need to specify
+                max_completion_tokens=2000
+            )
+        else:
+            response = openai.ChatCompletion.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.1,
+                max_tokens=2000
+            )
         
         try:
             response_text = response.choices[0].message.content
@@ -374,34 +386,35 @@ st.markdown("AI-powered prayer extraction for accurate results")
 with st.sidebar:
     st.header("⚙️ Settings")
     
-    # API Key input - check Streamlit secrets first, then env, then allow manual input
+    # API Key input - check Streamlit secrets first (for deployment), then env vars, then allow manual input
     api_key = None
     
-    # Try Streamlit secrets first (for deployment)
+    # Try Streamlit secrets first (preferred for deployment)
     try:
-        if 'OPENAI_API_KEY' in st.secrets:
-            api_key = st.secrets['OPENAI_API_KEY']
+        secrets_key = st.secrets.get("OPENAI_API_KEY")
+        if secrets_key and not secrets_key.startswith("your-"):
+            api_key = secrets_key
             st.success("✅ API Key loaded from secrets")
     except:
         pass
     
-    # Try environment variable next (for local development)
+    # Fall back to environment variable if no secrets
     if not api_key:
         env_key = os.getenv('OPENAI_API_KEY')
         if env_key:
             api_key = env_key
             st.success("✅ API Key loaded from environment")
     
-    # Allow manual input as fallback
+    # Finally, allow manual input if neither secrets nor env var exist
     if not api_key:
         api_key = st.text_input(
             "OpenAI API Key",
             type="password",
-            help="Enter your OpenAI API key or set OPENAI_API_KEY in .env file"
+            help="Enter your OpenAI API key or configure it in Streamlit Cloud secrets"
         )
         
         if api_key:
-            st.success("✅ API Key configured")
+            st.success("✅ API Key configured manually")
         else:
             st.warning("⚠️ API Key required for AI extraction")
     
@@ -410,9 +423,9 @@ with st.sidebar:
     # Model selection
     model_choice = st.selectbox(
         "AI Model",
-        ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"],
-        index=0,  # Default to gpt-4o
-        help="GPT-4o is the latest and most capable model"
+        ["gpt-5", "gpt-5-mini", "gpt-5-nano", "gpt-4", "gpt-4-turbo-preview", "gpt-4o", "gpt-4o-mini", "gpt-3.5-turbo-16k"],
+        index=0,  # Default to gpt-5
+        help="GPT-5 is the latest and most capable model (released Aug 2025)"
     )
     
     include_numbers = st.checkbox("Include Prayer Numbers", value=True)
@@ -429,11 +442,14 @@ with st.sidebar:
     st.markdown("### 💰 Cost Estimate")
     
     cost_map = {
-        "gpt-3.5-turbo": "~$0.002 per sermon",
+        "gpt-5": "~$0.015 per sermon",  # $1.25/$10 per 1M tokens
+        "gpt-5-mini": "~$0.008 per sermon",  # Cheaper than gpt-5
+        "gpt-5-nano": "~$0.004 per sermon",  # Cheapest GPT-5 variant
         "gpt-4": "~$0.02 per sermon",
-        "gpt-4-turbo": "~$0.01 per sermon",
+        "gpt-4-turbo-preview": "~$0.01 per sermon",
         "gpt-4o": "~$0.005 per sermon",
-        "gpt-4o-mini": "~$0.001 per sermon"
+        "gpt-4o-mini": "~$0.001 per sermon",
+        "gpt-3.5-turbo-16k": "~$0.002 per sermon"
     }
     
     st.markdown(f"**Selected Model ({model_choice}):**")
@@ -613,21 +629,35 @@ Look for prayers about:
         if st.button("Test Custom Prompt", key="test_prompt"):
             if api_key:
                 try:
-                    from openai import OpenAI
-                    client = OpenAI(api_key=api_key)
+                    import openai
+                    openai.api_key = api_key
                     
                     # Take first 10000 chars for testing
                     test_chunk = transcript[:10000]
                     
-                    response = client.chat.completions.create(
-                        model="gpt-3.5-turbo",
-                        messages=[
-                            {"role": "system", "content": "You are analyzing a church sermon transcript."},
-                            {"role": "user", "content": custom_prompt + "\n\nTranscript:\n" + test_chunk}
-                        ],
-                        temperature=0.1,
-                        max_tokens=2000
-                    )
+                    # Use the selected model for testing
+                    test_model = model_choice if api_key else "gpt-3.5-turbo"
+                    
+                    # Handle GPT-5 models differently
+                    if test_model.startswith('gpt-5'):
+                        response = openai.ChatCompletion.create(
+                            model=test_model,
+                            messages=[
+                                {"role": "system", "content": "You are analyzing a church sermon transcript."},
+                                {"role": "user", "content": custom_prompt + "\n\nTranscript:\n" + test_chunk}
+                            ],
+                            max_completion_tokens=2000
+                        )
+                    else:
+                        response = openai.ChatCompletion.create(
+                            model=test_model,
+                            messages=[
+                                {"role": "system", "content": "You are analyzing a church sermon transcript."},
+                                {"role": "user", "content": custom_prompt + "\n\nTranscript:\n" + test_chunk}
+                            ],
+                            temperature=0.1,
+                            max_tokens=2000
+                        )
                     
                     result = response.choices[0].message.content
                     st.markdown("### AI Response:")
