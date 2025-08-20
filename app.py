@@ -67,7 +67,26 @@ def extract_prayers_with_ai(transcript_text, api_key, model="gpt-4-turbo-preview
     """
     try:
         from openai import OpenAI
-        client = OpenAI(api_key=api_key)
+        # Initialize client without proxy settings (for Streamlit Cloud compatibility)
+        import os
+        # Temporarily remove proxy settings if they exist
+        old_http_proxy = os.environ.pop('HTTP_PROXY', None)
+        old_https_proxy = os.environ.pop('HTTPS_PROXY', None)
+        old_http_proxy_lower = os.environ.pop('http_proxy', None)
+        old_https_proxy_lower = os.environ.pop('https_proxy', None)
+        
+        try:
+            client = OpenAI(api_key=api_key)
+        finally:
+            # Restore proxy settings if they existed
+            if old_http_proxy:
+                os.environ['HTTP_PROXY'] = old_http_proxy
+            if old_https_proxy:
+                os.environ['HTTPS_PROXY'] = old_https_proxy
+            if old_http_proxy_lower:
+                os.environ['http_proxy'] = old_http_proxy_lower
+            if old_https_proxy_lower:
+                os.environ['https_proxy'] = old_https_proxy_lower
         
         # If we have timestamp data, use it to identify prayer clusters
         if transcript_data and isinstance(transcript_data, list) and len(transcript_data) > 0:
@@ -643,7 +662,26 @@ Look for prayers about:
             if api_key:
                 try:
                     from openai import OpenAI
-                    client = OpenAI(api_key=api_key)
+                    # Initialize client without proxy settings (for Streamlit Cloud compatibility)
+                    import os
+                    # Temporarily remove proxy settings if they exist
+                    old_http_proxy = os.environ.pop('HTTP_PROXY', None)
+                    old_https_proxy = os.environ.pop('HTTPS_PROXY', None)
+                    old_http_proxy_lower = os.environ.pop('http_proxy', None)
+                    old_https_proxy_lower = os.environ.pop('https_proxy', None)
+                    
+                    try:
+                        client = OpenAI(api_key=api_key)
+                    finally:
+                        # Restore proxy settings if they existed
+                        if old_http_proxy:
+                            os.environ['HTTP_PROXY'] = old_http_proxy
+                        if old_https_proxy:
+                            os.environ['HTTPS_PROXY'] = old_https_proxy
+                        if old_http_proxy_lower:
+                            os.environ['http_proxy'] = old_http_proxy_lower
+                        if old_https_proxy_lower:
+                            os.environ['https_proxy'] = old_https_proxy_lower
                     
                     # Take first 10000 chars for testing
                     test_chunk = transcript[:10000]
