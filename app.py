@@ -197,16 +197,41 @@ Filtered transcript (prayer-related sentences only):
 {relevant_text}"""
             
         # Use selected model for extraction
-        # Note: gpt-4o models are the latest and most capable
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.1,
-            max_tokens=2000
-        )
+        # GPT-5 models use max_completion_tokens instead of max_tokens
+        # GPT-5 models also don't support custom temperature (only default of 1)
+        if model.startswith('gpt-5'):
+            # GPT-5 specific parameters
+            try:
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    # GPT-5 uses different parameter name
+                    max_completion_tokens=2000
+                )
+            except Exception as e:
+                # Fallback if max_completion_tokens not supported
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    max_tokens=2000
+                )
+        else:
+            # Standard models
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.1,
+                max_tokens=2000
+            )
         
         try:
             response_text = response.choices[0].message.content
@@ -410,9 +435,9 @@ with st.sidebar:
     # Model selection
     model_choice = st.selectbox(
         "AI Model",
-        ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"],
-        index=0,  # Default to gpt-4o
-        help="GPT-4o is the latest and most capable model"
+        ["gpt-5", "gpt-5-mini", "gpt-5-nano", "gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"],
+        index=0,  # Default to gpt-5
+        help="GPT-5 is the latest and most capable model (released Aug 2025)"
     )
     
     include_numbers = st.checkbox("Include Prayer Numbers", value=True)
@@ -429,6 +454,9 @@ with st.sidebar:
     st.markdown("### 💰 Cost Estimate")
     
     cost_map = {
+        "gpt-5": "~$0.015 per sermon",
+        "gpt-5-mini": "~$0.008 per sermon",
+        "gpt-5-nano": "~$0.003 per sermon",
         "gpt-3.5-turbo": "~$0.002 per sermon",
         "gpt-4": "~$0.02 per sermon",
         "gpt-4-turbo": "~$0.01 per sermon",
