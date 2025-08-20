@@ -40,6 +40,7 @@ def fetch_transcript(video_id):
         # Create an instance of the API
         api = YouTubeTranscriptApi()
         transcript_list = api.list(video_id)
+        
         try:
             # Try to get manually created transcript first
             transcript = transcript_list.find_transcript(['en'])

@@ -1,5 +1,5 @@
 streamlit==1.32.0
-youtube-transcript-api==0.6.2
+youtube-transcript-api==1.2.2
 requests==2.31.0
 python-dotenv==1.0.0
 openai==1.35.0
