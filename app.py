@@ -256,3 +256,15 @@ if st.button("Extract Prayers"):
                 st.text_area("Full Transcript (as sent to AI):", value=full_text, height=500)
         else:
             st.error("Failed to fetch transcript")
+            st.info("""
+            **Possible reasons:**
+            - Video doesn't have captions/subtitles enabled
+            - Transcripts are disabled by the uploader
+            - Live stream still in progress
+            - Private or age-restricted video
+            
+            **Try:**
+            - Check if the video has CC (Closed Captions) button on YouTube
+            - Try a different video from your church
+            - Wait if it's a recent live stream (transcripts generate after stream ends)
+            """)

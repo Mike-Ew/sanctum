@@ -10,10 +10,19 @@ def get_transcript(video_id, languages=['en']):
         
     Returns:
         List of transcript segments with 'text', 'start', 'duration'
+        or None if transcript not available
     """
     try:
+        # For version 0.6.2, use the simpler API
         api = YouTubeTranscriptApi()
         transcript = api.fetch(video_id, languages=languages)
         return transcript
     except Exception as e:
-        return None
+        print(f"Error fetching transcript: {str(e)}")
+        # Try alternative method
+        try:
+            transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=languages)
+            return transcript
+        except Exception as e2:
+            print(f"Alternative method also failed: {str(e2)}")
+            return None
