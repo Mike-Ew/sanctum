@@ -1,5 +1,3 @@
-import tiktoken
-
 # Pricing per 1M tokens (in dollars)
 PRICING = {
     "gpt-5": {"input": 20.0, "output": 60.0},
@@ -11,27 +9,18 @@ PRICING = {
 
 def count_tokens(text, model="gpt-5"):
     """
-    Count exact tokens using tiktoken
+    Count tokens using character-based estimation
     
     Args:
         text: Text to count tokens for
         model: Model name for tokenizer
         
     Returns:
-        Number of tokens
+        Number of tokens (estimated)
     """
-    try:
-        # GPT-5 uses same tokenizer as GPT-4
-        if model.startswith("gpt-5"):
-            encoding = tiktoken.encoding_for_model("gpt-4")
-        else:
-            encoding = tiktoken.encoding_for_model(model)
-        
-        tokens = encoding.encode(text)
-        return len(tokens)
-    except:
-        # Fallback to rough estimate if tiktoken fails
-        return len(text) // 4
+    # Use character-based estimation
+    # Average of 4 characters per token is a reasonable approximation
+    return len(text) // 4
 
 def estimate_cost(input_text, model="gpt-5", estimated_output_tokens=500):
     """
