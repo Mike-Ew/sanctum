@@ -1,4 +1,4 @@
-import openai
+from openai import OpenAI
 import json
 
 def extract_prayers_with_ai(transcript_text, api_key, model="gpt-5"):
@@ -14,7 +14,7 @@ def extract_prayers_with_ai(transcript_text, api_key, model="gpt-5"):
         List of prayer dictionaries with 'number', 'text', 'scripture'
     """
     
-    openai.api_key = api_key
+    client = OpenAI(api_key=api_key)
     
     system_prompt = """You are a prayer point extraction specialist for church services.
     Extract ONLY the specific prayer points that the pastor announces, usually numbered or introduced as "prayer point".
@@ -56,7 +56,7 @@ def extract_prayers_with_ai(transcript_text, api_key, model="gpt-5"):
         
         # GPT-5 models only support default temperature
         if model.startswith('gpt-5'):
-            response = openai.ChatCompletion.create(
+            response = client.chat.completions.create(
                 model=model,
                 messages=[
                     {"role": "system", "content": system_prompt},
@@ -66,7 +66,7 @@ def extract_prayers_with_ai(transcript_text, api_key, model="gpt-5"):
             )
         else:
             # For GPT-4o and others
-            response = openai.ChatCompletion.create(
+            response = client.chat.completions.create(
                 model=model,
                 messages=[
                     {"role": "system", "content": system_prompt},
@@ -79,7 +79,7 @@ def extract_prayers_with_ai(transcript_text, api_key, model="gpt-5"):
         print(f"Response object: {response}")
         
         # Get the response content
-        content = response.choices[0].message['content']
+        content = response.choices[0].message.content
         
         # Debug: print what we got
         print(f"Raw response from {model}:")

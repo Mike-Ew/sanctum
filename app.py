@@ -24,16 +24,25 @@ with st.sidebar:
     
     st.divider()
     
-    api_key = os.getenv("OPENAI_API_KEY", "")
-    if api_key:
+    # Try to get API key from multiple sources
+    api_key = ""
+    
+    # First try Streamlit secrets
+    if "OPENAI_API_KEY" in st.secrets:
+        api_key = st.secrets["OPENAI_API_KEY"]
+        st.success("✅ API Key loaded from secrets")
+    # Then try environment variables
+    elif os.getenv("OPENAI_API_KEY"):
+        api_key = os.getenv("OPENAI_API_KEY", "")
         st.success("✅ API Key loaded from .env")
+    # Finally allow manual input
     else:
         api_key = st.text_input("OpenAI API Key", type="password")
     
     model = st.selectbox(
         "AI Model",
         ["gpt-5", "gpt-5-mini", "gpt-5-nano", "gpt-4o", "gpt-3.5-turbo"],
-        index=0
+        index=1  # Default to gpt-5-mini
     )
     
     # Pricing information
