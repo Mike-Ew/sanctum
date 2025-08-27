@@ -92,7 +92,20 @@ if st.button("Extract Prayers"):
         
         # Get transcript
         with st.spinner("Fetching transcript..."):
-            transcript = get_transcript(video_id)
+            result = get_transcript(video_id)
+        
+        # Handle new return format
+        if isinstance(result, dict):
+            transcript = result.get('transcript')
+            error = result.get('error')
+            error_type = result.get('error_type')
+            error_details = result.get('error_details')
+        else:
+            # Backward compatibility
+            transcript = result
+            error = None
+            error_type = None
+            error_details = None
         
         if transcript:
             st.success(f"Found {len(transcript)} segments")
@@ -265,6 +278,17 @@ if st.button("Extract Prayers"):
                 st.text_area("Full Transcript (as sent to AI):", value=full_text, height=500)
         else:
             st.error("Failed to fetch transcript")
+            
+            # Show detailed error if available
+            if error:
+                st.error(f"**Error Type:** {error_type}")
+                st.error(f"**Error Message:** {error}")
+                
+                # Show full traceback in expander for debugging
+                if error_details:
+                    with st.expander("🔍 Show Full Error Details (for debugging)"):
+                        st.code(error_details)
+            
             st.info("""
             **Possible reasons:**
             - Video doesn't have captions/subtitles enabled
