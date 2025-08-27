@@ -24,8 +24,12 @@ def get_transcript(video_id, languages=['en']):
         print(f"[DEBUG] Attempting to fetch transcript for video: {video_id}")
         
         # Use the correct static method
-        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
-        transcript = transcript_list.find_transcript(languages).fetch()
+        # For youtube-transcript-api version 1.2.x
+        api = YouTubeTranscriptApi()
+        transcript_obj = api.fetch(video_id, languages=languages)
+        
+        # Extract the snippets (segments)
+        transcript = transcript_obj.snippets
         
         print(f"[DEBUG] Successfully fetched {len(transcript)} segments")
         result['transcript'] = transcript
