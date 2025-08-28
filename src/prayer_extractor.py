@@ -17,20 +17,29 @@ def extract_prayers_with_ai(transcript_text, api_key, model="gpt-5"):
     client = OpenAI(api_key=api_key)
     
     system_prompt = """You are a prayer point extraction specialist for church services.
-    Extract ONLY the specific prayer points that the pastor announces, usually numbered or introduced as "prayer point".
-    These are typically stated clearly before the congregation prays them.
-    Each prayer point is usually 1-2 sentences and often has a scripture reference.
+    Extract ALL prayer points that the pastor announces for the congregation to pray.
     
-    IGNORE:
-    - General thanksgiving prayers
-    - Congregational responses and repetitions
-    - Elaborations and expansions of the prayer points
+    IMPORTANT PATTERNS TO RECOGNIZE:
+    - "We shall be saying..." or "Next we'll be saying..." introduces a prayer
+    - "Father, thank you..." IS a prayer point (don't skip thanksgiving prayers!)
+    - "Father, in the name of Jesus..." starts many prayers
+    - "Father, gather..." or "Father, perfect..." are prayer starts
+    
+    EXTRACT ALL PRAYERS INCLUDING:
+    - Thanksgiving prayers (often first)
+    - Intercessory prayers
+    - Declaration prayers
+    - Usually 3-5 total prayer points per service
+    
+    SCRIPTURE REFERENCES:
+    - May appear as "Acts 14:17" or "Act of apostle 14:17" or similar
+    - Clean up references (e.g., "Act 3:16" → "Acts 3:16")
+    - "Isaiah 9 and verse 8" → "Isaiah 9:8"
     
     EXTRACT:
-    - The exact prayer point as announced by the pastor
-    - The associated scripture reference (e.g., "John 4:36")
-    - The verse text if the pastor reads it (e.g., "And he that reapeth receiveth wages...")
-    - Usually there are 4-5 main intercessory prayer points in a service"""
+    - The complete prayer text as announced
+    - The scripture reference (cleaned up)
+    - The verse text when provided"""
     
     # Use full transcript for GPT-5, limit for others
     if model.startswith('gpt-5'):
@@ -38,17 +47,28 @@ def extract_prayers_with_ai(transcript_text, api_key, model="gpt-5"):
     else:
         text_to_process = transcript_text[:30000]  # Limit others to ~7.5K tokens
     
-    user_prompt = f"""Extract the announced prayer points from this transcript.
-    Look for phrases like "prayer point", "let us pray", "say Father", or numbered prayers.
-    Also capture the Bible verse text when the pastor reads it after announcing the scripture reference.
+    user_prompt = f"""Extract ALL prayer points from this church service transcript.
+    
+    LOOK FOR THESE PATTERNS:
+    1. "We shall be saying, Father..." or "Next we'll be saying father..."
+    2. "Let's pray saying Father..." or "Let's pray. Father..."
+    3. Any prayer starting with "Father, thank you..." or "Father, in the name of Jesus..."
+    
+    The prayers are usually announced first, then prayed together by the congregation.
+    Include ALL prayers, especially thanksgiving prayers (usually Prayer 1).
+    
+    Clean up scripture references:
+    - "Act of apostle 14:17" → "Acts 14:17"
+    - "Act 3:16" → "Acts 3:16"  
+    - "Isaiah 9 and verse 8" → "Isaiah 9:8"
     
     Transcript:
     {text_to_process}
     
-    Return JSON array like:
+    Return JSON array with ALL prayers found (usually 3-5 total):
     [
-        {{"number": "1", "text": "Father, thank you for the unprecedented multitudes you drafted into our services last Sunday and for establishing the enough is enough verdict in all issues of concern in the lives of all worshippers", "scripture": "Psalm 118:23", "verse_text": "This is the Lord's doing; it is marvelous in our eyes"}},
-        {{"number": "2", "text": "Father, in this season of glory consume all our new converts and new members with the zeal of the Lord so they can love to share the gospel with others thereby getting blessed in return", "scripture": "John 4:36", "verse_text": "And he that reapeth receiveth wages, and gathereth fruit unto life eternal: that both he that soweth and he that reapeth may rejoice together"}}
+        {{"number": "1", "text": "Father, thank you for invading our services last Sunday with abiding multitude and for the diverse signs and wonders wrought by your word and prophetic mantle", "scripture": "Acts 14:17", "verse_text": "Nevertheless he left not himself without witness..."}},
+        {{"number": "2", "text": "Father, in the name of Jesus, open up the glorious destiny of all our new converts of the year, thereby leading many others to Christ and this church", "scripture": "Zechariah 8:23", "verse_text": "Thus saith the Lord of hosts..."}}
     ]"""
     
     try:
