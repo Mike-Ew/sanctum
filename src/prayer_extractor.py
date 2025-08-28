@@ -17,29 +17,31 @@ def extract_prayers_with_ai(transcript_text, api_key, model="gpt-5"):
     client = OpenAI(api_key=api_key)
     
     system_prompt = """You are a prayer point extraction specialist for church services.
-    Extract ALL prayer points that the pastor announces for the congregation to pray.
+    Extract ALL prayer points from the INTERCESSORY SECTION of the service.
     
     IMPORTANT PATTERNS TO RECOGNIZE:
+    - The intercessory section contains the main prayers
     - "We shall be saying..." or "Next we'll be saying..." introduces a prayer
     - "Father, thank you..." IS a prayer point (don't skip thanksgiving prayers!)
     - "Father, in the name of Jesus..." starts many prayers
     - "Father, gather..." or "Father, perfect..." are prayer starts
     
     EXTRACT ALL PRAYERS INCLUDING:
-    - Thanksgiving prayers (often first)
-    - Intercessory prayers
+    - Thanksgiving prayers (often Prayer 1)
+    - Intercessory prayers (main section)
     - Declaration prayers
-    - Usually 3-5 total prayer points per service
+    - Usually 3-5 total prayer points in the intercessory section
     
     SCRIPTURE REFERENCES:
     - May appear as "Acts 14:17" or "Act of apostle 14:17" or similar
     - Clean up references (e.g., "Act 3:16" → "Acts 3:16")
     - "Isaiah 9 and verse 8" → "Isaiah 9:8"
+    - Even if pastor paraphrases, extract the reference for full verse lookup
     
     EXTRACT:
-    - The complete prayer text as announced
-    - The scripture reference (cleaned up)
-    - The verse text when provided"""
+    - The complete prayer text as announced by the pastor
+    - The scripture reference (cleaned up) - ALWAYS include this
+    - Don't worry about verse text - the Bible API will provide full verses"""
     
     # Use full transcript for GPT-5, limit for others
     if model.startswith('gpt-5'):
