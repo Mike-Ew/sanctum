@@ -51,26 +51,36 @@ def extract_prayers_with_ai(transcript_text, api_key, model="gpt-5"):
     
     user_prompt = f"""Extract ALL prayer points from this church service transcript.
     
-    LOOK FOR THESE PATTERNS:
-    1. "We shall be saying, Father..." or "Next we'll be saying father..."
-    2. "Let's pray saying Father..." or "Let's pray. Father..."
-    3. Any prayer starting with "Father, thank you..." or "Father, in the name of Jesus..."
+    CRITICAL: There are usually 4 prayers in the intercessory section:
+    1. FIRST PRAYER (Thanksgiving): "Father, thank you for invading our services..." - Acts 14:17
+    2. SECOND PRAYER: "Father, in the name of Jesus, open up the glorious destiny..." - Zechariah 8:23
+    3. THIRD PRAYER: "Father, perfect the health..." - Acts 3:16
+    4. FOURTH PRAYER: "Father, gather unprecedented..." - Isaiah 9:8
     
-    The prayers are usually announced first, then prayed together by the congregation.
-    Include ALL prayers, especially thanksgiving prayers (usually Prayer 1).
+    LOOK FOR THESE EXACT PATTERNS:
+    - "We shall be saying, 'Father, thank you..." - This is Prayer 1!
+    - "We will next rise and pray to our father in this way. Say father..." 
+    - "Next we'll be saying father..."
+    - "Let's pray saying Father..."
+    
+    The first prayer is ALWAYS the thanksgiving prayer starting with "Father, thank you".
+    DO NOT SKIP IT. It's part of the intercessory section.
     
     Clean up scripture references:
-    - "Act of apostle 14:17" → "Acts 14:17"
-    - "Act 3:16" → "Acts 3:16"  
+    - "Act of apostle 14:17" or "Act of apostle 14:E1 17" → "Acts 14:17"
+    - "Act 3:16" or "Acts chapter 3 and verse 16" → "Acts 3:16"  
     - "Isaiah 9 and verse 8" → "Isaiah 9:8"
+    - "Zechariah 8:23" or "Zech. 8:23" → "Zechariah 8:23"
     
     Transcript:
     {text_to_process}
     
-    Return JSON array with ALL prayers found (usually 3-5 total):
+    Return JSON array with ALL 4 prayers (or however many you find):
     [
-        {{"number": "1", "text": "Father, thank you for invading our services last Sunday with abiding multitude and for the diverse signs and wonders wrought by your word and prophetic mantle", "scripture": "Acts 14:17", "verse_text": "Nevertheless he left not himself without witness..."}},
-        {{"number": "2", "text": "Father, in the name of Jesus, open up the glorious destiny of all our new converts of the year, thereby leading many others to Christ and this church", "scripture": "Zechariah 8:23", "verse_text": "Thus saith the Lord of hosts..."}}
+        {{"number": "1", "text": "Father, thank you for invading our services last Sunday with abiding multitude and for the diverse signs and wonders wrought by your word and prophetic mantle", "scripture": "Acts 14:17"}},
+        {{"number": "2", "text": "Father, in the name of Jesus, open up the glorious destiny of all our new converts of the year, thereby leading many others to Christ and this church", "scripture": "Zechariah 8:23"}},
+        {{"number": "3", "text": "Father, perfect the health of every winner before this month is over", "scripture": "Acts 3:16"}},
+        {{"number": "4", "text": "Father, gather unprecedented and abiding multitudes into our services this coming Sunday and grant every worshipper their desired encounter by your word", "scripture": "Isaiah 9:8"}}
     ]"""
     
     try:
