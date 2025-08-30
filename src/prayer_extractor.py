@@ -17,31 +17,35 @@ def extract_prayers_with_ai(transcript_text, api_key, model="gpt-5"):
     client = OpenAI(api_key=api_key)
     
     system_prompt = """You are a prayer point extraction specialist for church services.
-    Extract ALL prayer points from the INTERCESSORY SECTION of the service.
+    Your job is to find ALL prayers announced in the intercessory section.
     
-    IMPORTANT PATTERNS TO RECOGNIZE:
-    - The intercessory section contains the main prayers
-    - "We shall be saying..." or "Next we'll be saying..." introduces a prayer
-    - "Father, thank you..." IS a prayer point (don't skip thanksgiving prayers!)
-    - "Father, in the name of Jesus..." starts many prayers
-    - "Father, gather..." or "Father, perfect..." are prayer starts
+    KEY UNDERSTANDING:
+    - Prayers are ANNOUNCED first, then the congregation prays them
+    - The announcement is what you need to capture, not the congregation's repetition
+    - NEVER skip any prayers, especially not thanksgiving prayers
     
-    EXTRACT ALL PRAYERS INCLUDING:
-    - Thanksgiving prayers (often Prayer 1)
-    - Intercessory prayers (main section)
-    - Declaration prayers
-    - Usually 3-5 total prayer points in the intercessory section
+    PRAYER ANNOUNCEMENT PATTERNS:
+    - "We shall be saying, 'Father...'" 
+    - "Next we'll be saying father..."
+    - "Let's pray saying, 'Father...'"
+    - "We will rise and pray to our father in this way. Say father..."
+    - Look for where the pastor tells people WHAT to pray
     
-    SCRIPTURE REFERENCES:
-    - May appear as "Acts 14:17" or "Act of apostle 14:17" or similar
-    - Clean up references (e.g., "Act 3:16" → "Acts 3:16")
-    - "Isaiah 9 and verse 8" → "Isaiah 9:8"
-    - Even if pastor paraphrases, extract the reference for full verse lookup
+    PRAYER TYPES TO INCLUDE:
+    - Thanksgiving prayers (usually first, starts with "Father, thank you...")
+    - Intercessory prayers ("Father, in the name of Jesus...")
+    - Declaration prayers ("Father, perfect..." or "Father, gather...")
+    - ALL prayers matter - extract them all in order
     
-    EXTRACT:
-    - The complete prayer text as announced by the pastor
-    - The scripture reference (cleaned up) - ALWAYS include this
-    - Don't worry about verse text - the Bible API will provide full verses"""
+    SCRIPTURE HANDLING:
+    - Each prayer has a scripture reference (Acts, Isaiah, etc.)
+    - Clean up messy references from speech-to-text
+    - Fix typos and formatting issues
+    
+    OUTPUT:
+    - Complete prayer text as announced
+    - Cleaned scripture reference
+    - Prayers numbered in order found"""
     
     # Use full transcript for GPT-5, limit for others
     if model.startswith('gpt-5'):
@@ -49,38 +53,39 @@ def extract_prayers_with_ai(transcript_text, api_key, model="gpt-5"):
     else:
         text_to_process = transcript_text[:30000]  # Limit others to ~7.5K tokens
     
-    user_prompt = f"""Extract ALL prayer points from this church service transcript.
+    user_prompt = f"""Extract ALL prayer points from the intercessory section of this church service.
     
-    CRITICAL: There are usually 4 prayers in the intercessory section:
-    1. FIRST PRAYER (Thanksgiving): "Father, thank you for invading our services..." - Acts 14:17
-    2. SECOND PRAYER: "Father, in the name of Jesus, open up the glorious destiny..." - Zechariah 8:23
-    3. THIRD PRAYER: "Father, perfect the health..." - Acts 3:16
-    4. FOURTH PRAYER: "Father, gather unprecedented..." - Isaiah 9:8
+    IMPORTANT RULES:
+    1. Find where prayers are ANNOUNCED (not where congregation prays them)
+    2. Look for these announcement patterns:
+       - "We shall be saying..." 
+       - "Next we'll be saying..."
+       - "Let's pray saying..."
+       - "We will next rise and pray to our father in this way. Say..."
     
-    LOOK FOR THESE EXACT PATTERNS:
-    - "We shall be saying, 'Father, thank you..." - This is Prayer 1!
-    - "We will next rise and pray to our father in this way. Say father..." 
-    - "Next we'll be saying father..."
-    - "Let's pray saying Father..."
+    3. After each announcement, the prayer text usually starts with "Father"
     
-    The first prayer is ALWAYS the thanksgiving prayer starting with "Father, thank you".
-    DO NOT SKIP IT. It's part of the intercessory section.
+    4. Include ALL prayers - DO NOT skip any, including:
+       - Thanksgiving prayers (often start with "Father, thank you...")
+       - Intercessory prayers (often "Father, in the name of Jesus...")
+       - Declaration prayers (often "Father, perfect..." or "Father, gather...")
     
-    Clean up scripture references:
-    - "Act of apostle 14:17" or "Act of apostle 14:E1 17" → "Acts 14:17"
-    - "Act 3:16" or "Acts chapter 3 and verse 16" → "Acts 3:16"  
-    - "Isaiah 9 and verse 8" → "Isaiah 9:8"
-    - "Zechariah 8:23" or "Zech. 8:23" → "Zechariah 8:23"
+    5. Each prayer is followed by a scripture reference that needs cleaning:
+       - "Act of apostle 14:17" or "14:E1 17" → "Acts 14:17"
+       - "Act 3:16" or "chapter 3 and verse 16" → "Acts 3:16"
+       - "Isaiah 9 and verse 8" → "Isaiah 9:8"
+       - Remove any "E1" or similar artifacts
+    
+    6. Extract prayers in the ORDER they are announced (usually 3-5 prayers)
     
     Transcript:
     {text_to_process}
     
-    Return JSON array with ALL 4 prayers (or however many you find):
+    Return JSON array with ALL prayers found, in order:
     [
-        {{"number": "1", "text": "Father, thank you for invading our services last Sunday with abiding multitude and for the diverse signs and wonders wrought by your word and prophetic mantle", "scripture": "Acts 14:17"}},
-        {{"number": "2", "text": "Father, in the name of Jesus, open up the glorious destiny of all our new converts of the year, thereby leading many others to Christ and this church", "scripture": "Zechariah 8:23"}},
-        {{"number": "3", "text": "Father, perfect the health of every winner before this month is over", "scripture": "Acts 3:16"}},
-        {{"number": "4", "text": "Father, gather unprecedented and abiding multitudes into our services this coming Sunday and grant every worshipper their desired encounter by your word", "scripture": "Isaiah 9:8"}}
+        {{"number": "1", "text": "[complete prayer text]", "scripture": "[cleaned reference]"}},
+        {{"number": "2", "text": "[complete prayer text]", "scripture": "[cleaned reference]"}},
+        ...
     ]"""
     
     try:
